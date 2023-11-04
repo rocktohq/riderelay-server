@@ -55,6 +55,17 @@ async function run() {
       }
     });
 
+    // Get a Single Service
+    app.get("/api/v1/services/:serviceId", async (req, res) => {
+      try {
+        const id = req.params.serviceId;
+        const query = { _id: new ObjectId(id) };
+        const result = await serviceCollection.findOne(query);
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
