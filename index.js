@@ -12,7 +12,7 @@ app.use(cors());
 
 // Default Route
 app.get("/", (req, res) => {
-  res.send("RideRelay Server is running");
+  res.send("RideRelay Server is running...");
 });
 
 // * MongoDB COnfigurations
@@ -40,10 +40,10 @@ async function run() {
 
     // * Collections
     const serviceCollection = client.db("rideRelay").collection("services");
+    const bookingCollection = client.db("rideRelay").collection("bookings");
 
-    // * Routes
+    // * Get APIs
     // Get Services
-
     app.get("/api/v1/services", async (req, res) => {
       try {
         let query = {};
@@ -51,7 +51,7 @@ async function run() {
         const result = await cursor.toArray();
         res.send(result);
       } catch (err) {
-        console.log(err);
+        res.send(err);
       }
     });
 
@@ -63,9 +63,35 @@ async function run() {
         const result = await serviceCollection.findOne(query);
         res.send(result);
       } catch (err) {
-        console.log(err);
+        res.send(err);
       }
     });
+
+    // Get Bookings
+    app.get("/api/v1/bookings", async (req, res) => {
+      try {
+        let query = {};
+        const cursor = bookingCollection.find(query);
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Get a Single Booking
+    app.get("/api/v1/bookings/:bookingId", async (req, res) => {
+      try {
+        const id = req.params.bookingId;
+        const query = { _id: new ObjectId(id) };
+        const result = await bookingCollection.findOne(query);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -73,8 +99,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-// Listener
-
+// Listeners
 app.listen(port, () => {
   console.log(`RideRelay Server is running on port ${port}`);
 });
