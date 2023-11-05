@@ -91,6 +91,29 @@ async function run() {
       }
     });
 
+    // * Post APIs
+    // Create a Service
+    app.post("/api/v1/add-new-service", async (req, res) => {
+      try {
+        const service = req.body;
+        const result = await serviceCollection.insertOne(service);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Book a Service
+    app.post("/api/v1/book-a-service", async (req, res) => {
+      try {
+        const service = req.body;
+        const result = await bookingCollection.insertOne(service);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
 
   } finally {
     // Ensures that the client will close when you finish/error
