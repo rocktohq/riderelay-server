@@ -114,6 +114,53 @@ async function run() {
       }
     });
 
+    // * Update APIs
+    // Update a Service
+    app.put("/api/v1/update-service/:serviceId", async (req, res) => {
+      try {
+        const id = req.params.serviceId;
+        const service = req.body;
+        const query = { _id: new ObjectId(id) };
+        const options = {};
+        const updatedService = {
+          $set: {
+            ...service,
+          },
+        };
+        const result = await serviceCollection.updateOne(
+          query,
+          updatedService,
+          options
+        );
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Update a Booking
+    app.put("/api/v1/update-booking/:bookingId", async (req, res) => {
+      try {
+        const id = req.params.bookingId;
+        const booking = req.body;
+        const query = { _id: new ObjectId(id) };
+        const options = {};
+        const updatedBooking = {
+          $set: {
+            ...booking,
+          },
+        };
+        const result = await bookingCollection.updateOne(
+          query,
+          updatedBooking,
+          options
+        );
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
 
   } finally {
     // Ensures that the client will close when you finish/error
