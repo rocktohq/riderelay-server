@@ -161,7 +161,29 @@ async function run() {
       }
     });
 
-
+    // * Delete APIs
+    // Delete a Service
+    app.delete("/api/v1/delete-service/:serviceId", async (req, res) => {
+      try {
+        const id = req.params.serviceId;
+        const query = { _id: new ObjectId(id) };
+        const result = await serviceCollection.deleteOne(query);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+    // Delete a Booking
+    app.delete("/api/v1/delete-booking/:bookingId", async (req, res) => {
+      try {
+        const id = req.params.bookingId;
+        const query = { _id: new ObjectId(id) };
+        const result = await bookingCollection.deleteOne(query);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
