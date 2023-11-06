@@ -1,5 +1,7 @@
 const express = require("express");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 
@@ -8,7 +10,24 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://riderelayhq.web.app"],
+    credentials: true,
+  })
+);
+
+// Token Verification
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) return res.status(401).send({ message: "Unauthorized access" });
+  jwt.verify(token, process.env.SECRET, (error, decoded) => {
+    if (error) return res.status(401).send({ message: "Unauthorized access" });
+    req.user = decoded;
+    next();
+  });
+};
 
 // Default Route
 app.get("/", (req, res) => {
@@ -42,6 +61,28 @@ async function run() {
     const serviceCollection = client.db("rideRelay").collection("services");
     const bookingCollection = client.db("rideRelay").collection("bookings");
 
+    // * JWT APIs
+    // JWT API
+    app.post("/api/v1/auth/access-token", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.SECRET, { expiresIn: "24h" });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+          maxAge: 1000 * 60 * 60 * 24,
+        })
+        .send({ type: "Token creation", success: true });
+    });
+
+    // LogOut API
+    app.post("/api/v1/auth/logout", (req, res) => {
+      const user = req.body;
+      res
+        .clearCookie("token", { maxAge: 0 })
+        .send({ type: "Logout user", success: true });
+    });
+
     // * Get APIs
     // Get Services
     app.get("/api/v1/services", async (req, res) => {
@@ -56,7 +97,7 @@ async function run() {
     });
 
     // Get a Single Service
-    app.get("/api/v1/services/:serviceId", async (req, res) => {
+    app.get("/api/v1/services/:serviceId", verifyToken, async (req, res) => {
       try {
         const id = req.params.serviceId;
         const query = { _id: new ObjectId(id) };
@@ -68,7 +109,7 @@ async function run() {
     });
 
     // Get Bookings
-    app.get("/api/v1/bookings", async (req, res) => {
+    app.get("/api/v1/bookings", verifyToken, async (req, res) => {
       try {
         let query = {};
         const cursor = bookingCollection.find(query);
@@ -80,7 +121,7 @@ async function run() {
     });
 
     // Get a Single Booking
-    app.get("/api/v1/bookings/:bookingId", async (req, res) => {
+    app.get("/api/v1/bookings/:bookingId", verifyToken, async (req, res) => {
       try {
         const id = req.params.bookingId;
         const query = { _id: new ObjectId(id) };
@@ -93,7 +134,7 @@ async function run() {
 
     // * Post APIs
     // Create a Service
-    app.post("/api/v1/add-new-service", async (req, res) => {
+    app.post("/api/v1/add-new-service", verifyToken, async (req, res) => {
       try {
         const service = req.body;
         const result = await serviceCollection.insertOne(service);
@@ -104,7 +145,7 @@ async function run() {
     });
 
     // Book a Service
-    app.post("/api/v1/book-a-service", async (req, res) => {
+    app.post("/api/v1/book-a-service", verifyToken, async (req, res) => {
       try {
         const service = req.body;
         const result = await bookingCollection.insertOne(service);
@@ -116,74 +157,91 @@ async function run() {
 
     // * Update APIs
     // Update a Service
-    app.put("/api/v1/update-service/:serviceId", async (req, res) => {
-      try {
-        const id = req.params.serviceId;
-        const service = req.body;
-        const query = { _id: new ObjectId(id) };
-        const options = {};
-        const updatedService = {
-          $set: {
-            ...service,
-          },
-        };
-        const result = await serviceCollection.updateOne(
-          query,
-          updatedService,
-          options
-        );
-        res.send(result);
-      } catch (err) {
-        res.send(err);
+    app.put(
+      "/api/v1/update-service/:serviceId",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const id = req.params.serviceId;
+          const service = req.body;
+          const query = { _id: new ObjectId(id) };
+          const options = {};
+          const updatedService = {
+            $set: {
+              ...service,
+            },
+          };
+          const result = await serviceCollection.updateOne(
+            query,
+            updatedService,
+            options
+          );
+          res.send(result);
+        } catch (err) {
+          res.send(err);
+        }
       }
-    });
+    );
 
     // Update a Booking
-    app.put("/api/v1/update-booking/:bookingId", async (req, res) => {
-      try {
-        const id = req.params.bookingId;
-        const booking = req.body;
-        const query = { _id: new ObjectId(id) };
-        const options = {};
-        const updatedBooking = {
-          $set: {
-            ...booking,
-          },
-        };
-        const result = await bookingCollection.updateOne(
-          query,
-          updatedBooking,
-          options
-        );
-        res.send(result);
-      } catch (err) {
-        res.send(err);
+    app.put(
+      "/api/v1/update-booking/:bookingId",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const id = req.params.bookingId;
+          const booking = req.body;
+          const query = { _id: new ObjectId(id) };
+          const options = {};
+          const updatedBooking = {
+            $set: {
+              ...booking,
+            },
+          };
+          const result = await bookingCollection.updateOne(
+            query,
+            updatedBooking,
+            options
+          );
+          res.send(result);
+        } catch (err) {
+          res.send(err);
+        }
       }
-    });
+    );
 
     // * Delete APIs
     // Delete a Service
-    app.delete("/api/v1/delete-service/:serviceId", async (req, res) => {
-      try {
-        const id = req.params.serviceId;
-        const query = { _id: new ObjectId(id) };
-        const result = await serviceCollection.deleteOne(query);
-        res.send(result);
-      } catch (err) {
-        res.send(err);
+    app.delete(
+      "/api/v1/delete-service/:serviceId",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const id = req.params.serviceId;
+          const query = { _id: new ObjectId(id) };
+          const result = await serviceCollection.deleteOne(query);
+          res.send(result);
+        } catch (err) {
+          res.send(err);
+        }
       }
-    });
+    );
+
     // Delete a Booking
-    app.delete("/api/v1/delete-booking/:bookingId", async (req, res) => {
-      try {
-        const id = req.params.bookingId;
-        const query = { _id: new ObjectId(id) };
-        const result = await bookingCollection.deleteOne(query);
-        res.send(result);
-      } catch (err) {
-        res.send(err);
+    app.delete(
+      "/api/v1/delete-booking/:bookingId",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const id = req.params.bookingId;
+          const query = { _id: new ObjectId(id) };
+          const result = await bookingCollection.deleteOne(query);
+          res.send(result);
+        } catch (err) {
+          res.send(err);
+        }
       }
-    });
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
