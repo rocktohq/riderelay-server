@@ -87,8 +87,16 @@ async function run() {
     // Get Services
     app.get("/api/v1/services", async (req, res) => {
       try {
+        // Sorting
+        let sorting = {};
+        if (req.query.sortBy === "price" && req.query.sortOrder === "desc") {
+          sorting = { price: 1 };
+        } else if (req.query.sortBy === "price" && req.query === "asc") {
+          sorting = { price: -1 };
+        }
+        // Query
         let query = {};
-        const cursor = serviceCollection.find(query);
+        const cursor = serviceCollection.find(query).sort(sorting);
         const result = await cursor.toArray();
         res.send(result);
       } catch (err) {
@@ -97,7 +105,7 @@ async function run() {
     });
 
     // Get a Single Service
-    app.get("/api/v1/services/:serviceId", verifyToken, async (req, res) => {
+    app.get("/api/v1/services/:serviceId", async (req, res) => {
       try {
         const id = req.params.serviceId;
         const query = { _id: new ObjectId(id) };
@@ -111,6 +119,11 @@ async function run() {
     // Get Bookings
     app.get("/api/v1/bookings", verifyToken, async (req, res) => {
       try {
+        if (req?.user?.email !== req?.query?.email) {
+          res.status(403).send({ message: "Forbidden access" });
+          return;
+        }
+
         let query = {};
         const cursor = bookingCollection.find(query);
         const result = await cursor.toArray();
