@@ -97,10 +97,16 @@ async function run() {
         ) {
           sorting = { price: -1 };
         }
-        // Query
-        let query = {};
-        const cursor = serviceCollection.find(query).sort(sorting);
+
+        // Search
+        const search = req.query.search || "";
+
+        const cursor = serviceCollection
+          .find({ name: { $regex: search, $options: "i" } })
+          .sort(sorting);
         const result = await cursor.toArray();
+
+        console.log(result);
         res.send(result);
       } catch (err) {
         res.send(err);
@@ -127,7 +133,7 @@ async function run() {
           return;
         }
 
-        let query = {};
+        let query = { "client.email": req.query.email };
         const cursor = bookingCollection.find(query);
         const result = await cursor.toArray();
         res.send(result);
@@ -142,6 +148,52 @@ async function run() {
         const id = req.params.bookingId;
         const query = { _id: new ObjectId(id) };
         const result = await bookingCollection.findOne(query);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Get My Services
+    app.get("/api/v1/my-services", verifyToken, async (req, res) => {
+      try {
+        if (req?.user?.email !== req?.query?.email) {
+          res.status(403).send({ message: "Forbidden access" });
+          return;
+        }
+        const query = { "provider.email": req.query.email };
+        const cursor = serviceCollection.find(query);
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Get My Services these are Booked by Users
+    app.get("/api/v1/my-provided-services", verifyToken, async (req, res) => {
+      try {
+        if (req?.user?.email !== req?.query?.email) {
+          res.status(403).send({ message: "Forbidden access" });
+          return;
+        }
+        const query = { "provider.email": req.query.email };
+        const cursor = bookingCollection.find(query);
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    });
+
+    // Get Services from a Provider
+    app.get("/api/v1/provider-services", verifyToken, async (req, res) => {
+      try {
+        // Query
+        const providerEmail = req.query.providerEmail;
+        const query = { "provider.email": providerEmail };
+        const cursor = serviceCollection.find(query);
+        const result = await cursor.toArray();
         res.send(result);
       } catch (err) {
         res.send(err);
@@ -205,9 +257,17 @@ async function run() {
       verifyToken,
       async (req, res) => {
         try {
+          if (req?.user?.email !== req?.query?.email) {
+            res.status(403).send({ message: "Forbidden access" });
+            return;
+          }
+
           const id = req.params.bookingId;
           const booking = req.body;
-          const query = { _id: new ObjectId(id) };
+          const query = {
+            _id: new ObjectId(id),
+            "provider.email": req.query.email,
+          };
           const options = {};
           const updatedBooking = {
             $set: {
