@@ -91,7 +91,10 @@ async function run() {
         let sorting = {};
         if (req.query.sortBy === "price" && req.query.sortOrder === "desc") {
           sorting = { price: 1 };
-        } else if (req.query.sortBy === "price" && req.query === "asc") {
+        } else if (
+          req.query.sortBy === "price" &&
+          req.query.sortOrder === "asc"
+        ) {
           sorting = { price: -1 };
         }
         // Query
