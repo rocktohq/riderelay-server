@@ -106,7 +106,6 @@ async function run() {
           .sort(sorting);
         const result = await cursor.toArray();
 
-        console.log(result);
         res.send(result);
       } catch (err) {
         res.send(err);
