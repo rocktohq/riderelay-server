@@ -13,7 +13,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://riderelayhq.web.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://riderelayhq.web.app",
+      "https://riderelayhq.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -69,10 +73,11 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false,
+          secure: true,
+          sameSite: "none",
           maxAge: 1000 * 60 * 60 * 24,
         })
-        .send({ type: "Token creation", success: true });
+        .send({ Action: "Token creation", success: true });
     });
 
     // LogOut API
@@ -80,7 +85,7 @@ async function run() {
       const user = req.body;
       res
         .clearCookie("token", { maxAge: 0 })
-        .send({ type: "Logout user", success: true });
+        .send({ Action: "Logout user", success: true });
     });
 
     // * Get APIs
